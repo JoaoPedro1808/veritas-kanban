@@ -68,7 +68,6 @@ function App() {
     const [error, setError] = useState(null);
     const [mounted, setMounted] = useState(false);
     
-    // Forçar montagem após um delay mínimo
     useEffect(() => {
         const timer = setTimeout(() => {
             setMounted(true);
@@ -78,23 +77,18 @@ function App() {
     }, []);
 
     useEffect(() => {
-        console.log("=== App montado, iniciando fetch ===");
         let isMounted = true;
         let timeoutId;
         
-        // Função para parar o loading
         const stopLoading = () => {
             if (isMounted) {
-                console.log("Parando loading...");
                 setLoading(false);
             }
         };
         
-        // Timeout de segurança - se não receber resposta em 2 segundos, mostra o board vazio
         timeoutId = setTimeout(() => {
-            console.warn("=== TIMEOUT: Forçando renderização do board vazio ===");
             if (isMounted) {
-                setError("Timeout ao conectar com o servidor (aguardando mais de 2 segundos)");
+                setError("Erro de conexão com banco de dados, tentando reconexão");
                 setBoard(emptyBoard);
                 stopLoading();
             }
@@ -116,30 +110,22 @@ function App() {
                 return;
             }
             if (timeoutId) clearTimeout(timeoutId);
-            console.log("=== Dados recebidos do backend ===", data);
             const tasksArray = data.data || data || [];
-            console.log("Array de tarefas:", tasksArray);
             const formattedBoard = formatData(tasksArray);
-            console.log("=== Board formatado ===", formattedBoard);
             setBoard(formattedBoard);
             stopLoading();
             setError(null);
         })
         .catch(error => {
             if (!isMounted) {
-                console.log("Componente desmontado, ignorando erro");
                 return;
             }
-            console.error("=== ERRO ao buscar tarefas ===", error);
             if (timeoutId) clearTimeout(timeoutId);
-            setError(error.message || "Erro desconhecido");
-            console.log("=== Mostrando board vazio devido ao erro ===");
             setBoard(emptyBoard);
             stopLoading();
         })
 
         return () => {
-            console.log("=== Limpando useEffect ===");
             isMounted = false;
             if (timeoutId) clearTimeout(timeoutId);
         };
@@ -222,7 +208,6 @@ function App() {
         })
         .then(response => response.json())
         .then(updateTask => {
-            console.log("Banco de dados atualizado com sucesso", updateTask);
 
             setBoard(prevBoard => ({
                 ...prevBoard,
@@ -235,15 +220,7 @@ function App() {
                 }
             }));
         })
-        .catch(error => {
-            console.error("Erro ao atualizar o banco de dados: ", error);
-        });
     };
-    
-    console.log("=== RENDER: loading =", loading, "error =", error);
-    console.log("=== RENDER: board =", board);
-    console.log("=== RENDER: columnOrder =", board?.columnOrder);
-    console.log("=== RENDER: columns =", board?.columns);
 
     // Se ainda estiver carregando após 3 segundos, força a renderização
     const [forceRender, setForceRender] = useState(false);
@@ -251,7 +228,6 @@ function App() {
     useEffect(() => {
         const forceTimeout = setTimeout(() => {
             if (loading) {
-                console.warn("=== FORÇANDO RENDER: Loading muito longo ===");
                 setForceRender(true);
                 setLoading(false);
                 setBoard(emptyBoard);
@@ -260,36 +236,17 @@ function App() {
         
         return () => clearTimeout(forceTimeout);
     }, [loading]);
-
-    // Se não montou ainda, mostra loading
-    if (!mounted) {
-        return (
-            <div className="loading-container">
-                <div>
-                    <h1>Inicializando...</h1>
-                </div>
-            </div>
-        );
-    }
     
     // Renderizar loading apenas se realmente estiver carregando e não forçado
     if (loading && !forceRender) {
-        console.log("=== Renderizando tela de loading ===");
         return (
             <div className="loading-container">
                 <div>
-                    <h1>Carregando quadro Kanban...</h1>
-                    <p>Aguarde enquanto buscamos os dados do servidor...</p>
+                    <h1>Carregando...</h1>
                     {error && <p style={{ color: 'red', marginTop: '10px' }}>Erro: {error}</p>}
                 </div>
             </div>
         );
-    }
-    
-    // FORÇA renderização após 4 segundos máximo
-    if (loading) {
-        console.warn("=== LOADING PRESO - FORÇANDO RENDER ===");
-        // Não retorna loading, deixa passar para renderizar o board
     }
 
     // Garantir que sempre temos as colunas
@@ -303,11 +260,10 @@ function App() {
     try {
         return (
             <div className="app-container">
-                <h1 className="app-header">Veritas Kanban</h1>
+                <h1 className="app-header">Kanban Pessoal</h1>
                 {error && (
                     <div className="error-message">
-                        <strong>Erro ao conectar com o backend:</strong> {error}
-                        <small>Certifique-se de que o servidor Go está rodando na porta 8080</small>
+                        <strong>Erro ao tentar se comunicar com o banco de dados: </strong> {error}
                     </div>
                 )}
                 <DragDropContext onDragEnd={onDragEnd}>
@@ -330,11 +286,8 @@ function App() {
                                             return task;
                                         })
                                         .filter(task => task !== undefined && task !== null);
-
-                                    console.log(`=== Renderizando coluna ${columnId} (${column.title}) com ${tasks.length} tarefas ===`);
                                     return <Column key={column.id} column={{...column, tasks}} />;
                                 } catch (colError) {
-                                    console.error(`Erro ao renderizar coluna ${columnId}:`, colError);
                                     return (
                                         <div key={columnId} style={{ padding: '20px', border: '1px solid red', color: 'red' }}>
                                             Erro ao renderizar coluna {columnId}: {colError.message}
