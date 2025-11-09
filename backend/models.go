@@ -6,7 +6,7 @@ const (
 	concluido = "Concluídas"
 )
 
-type task struct {
+type Task struct {
 	Id int `json:"id"`
 	Nome string `json:"nome"`
 	Desc string `json:"desc,omitempty"`
