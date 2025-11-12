@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DragDropContext } from 'react-beautiful-dnd';
 import Column from './assets/components/Column';
+import CreateAlert from './assets/components/CreateAlert';
 import './App.css';
 
 const statusMap = {
@@ -69,6 +70,7 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [mounted, setMounted] = useState(false);
+    const [showCreateAlert, setShowCreateAlert] = useState(false); // ⭐ STATE DO ALERTA
     
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -111,10 +113,10 @@ function App() {
             });
     }, []);
 
-    const handlerCreate = async (nome) => {
+    const handleCreateTaskWithAlert = async (nome, desc = "") => {
         const newTaskData = {
             nome: nome,
-            desc: "",
+            desc: desc,
             status: "A Fazer",
         };
 
@@ -124,13 +126,15 @@ function App() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newTaskData)
             });
+            
             if (!response.ok) {
-                throw new error("Erro ao criar tarefa")
+                throw new Error("Erro ao criar tarefa");
             }
-            fetchTask()
-        }
-        catch (error) {
-            setError(error.message)
+            
+            fetchTask();
+            setShowCreateAlert(false); // ⭐ FECHA O ALERTA APÓS CRIAR
+        } catch (error) {
+            setError(error.message);
         }
     };
 
@@ -274,7 +278,6 @@ function App() {
         })
     };
 
-    // Se ainda estiver carregando após 3 segundos, força a renderização
     const [forceRender, setForceRender] = useState(false);
     
     useEffect(() => {
@@ -288,8 +291,7 @@ function App() {
         
         return () => clearTimeout(forceTimeout);
     }, [loading]);
-    
-    // Renderizar loading apenas se realmente estiver carregando e não forçado
+
     if (loading && !forceRender) {
         return (
             <div className="loading-container">
@@ -301,7 +303,6 @@ function App() {
         );
     }
 
-    // Garantir que sempre temos as colunas
     const columnsToRender = board?.columnOrder || emptyBoard.columnOrder || [];
     const columnsData = board?.columns || emptyBoard.columns || {};
 
@@ -338,7 +339,12 @@ function App() {
                                             return task;
                                         })
                                         .filter(task => task !== undefined && task !== null);
-                                    return <Column key={column.id} column={{...column, tasks}} onCreateTask={handlerCreate} onDeleteTask={handlerDelete}/>;
+                                    return <Column 
+                                        key={column.id} 
+                                        column={{...column, tasks}} 
+                                        onDeleteTask={handlerDelete}
+                                        onShowCreateAlert={() => setShowCreateAlert(true)}
+                                    />;
                                 } catch (colError) {
                                     return (
                                         <div key={columnId} style={{ padding: '20px', border: '1px solid red', color: 'red' }}>
@@ -357,10 +363,15 @@ function App() {
                         )}
                     </div>
                 </DragDropContext>
+                {showCreateAlert && (
+                    <CreateAlert 
+                        onCreateTask={handleCreateTaskWithAlert}
+                        onClose={() => setShowCreateAlert(false)}
+                    />
+                )}
             </div>
         );
     } catch (renderError) {
-        console.error("=== ERRO CRÍTICO NA RENDERIZAÇÃO ===", renderError);
         return (
             <div className="app-container" style={{ padding: '40px', color: 'red' }}>
                 <h1>Erro ao renderizar o aplicativo</h1>

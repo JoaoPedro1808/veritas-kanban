@@ -3,7 +3,7 @@ import { Droppable } from "react-beautiful-dnd";
 import Task from "./Tasks";
 import "./Column.css";
 
-export default function Column({column, onCreateTask, onDeleteTask}) {
+export default function Column({column, onDeleteTask, onShowCreateAlert}) {
     if (!column || !column.id) {
         console.warn("column undefined")
         return null;
@@ -22,10 +22,8 @@ export default function Column({column, onCreateTask, onDeleteTask}) {
     })
 
     const handleAddTask = () => {
-        const nome = prompt("Nova tarefa");
-
-        if (nome && nome.trim() != "") {
-            onCreateTask(nome.trim());
+        if (onShowCreateAlert) {
+            onShowCreateAlert();    
         }
     };
 
@@ -42,7 +40,7 @@ export default function Column({column, onCreateTask, onDeleteTask}) {
                         backgroundColor: snapshot.isDraggingOver ? "#e3f2fd" : "#f9f9f9",
                     }}>
                         {valid.length > 0 ? (
-                            tasks.map((task, index) => (
+                            valid.map((task, index) => (
                                 task ? <Task key={task.id} task={task} index={index} onDeleteTask={() => onDeleteTask(task.db_id)}/> : null
                             ))
                         ) : (
@@ -54,7 +52,7 @@ export default function Column({column, onCreateTask, onDeleteTask}) {
                     </div>
                 )}
             </Droppable>
-            {column.title == "A Fazer" && (
+            {column.title === "A Fazer" && (
             <button className="addtask" onClick={handleAddTask}>
                 Adicionar nova tarefa
             </button>
