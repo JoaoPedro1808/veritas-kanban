@@ -41,7 +41,7 @@ export default function Column({column, onDeleteTask, onShowCreateAlert}) {
                     }}>
                         {valid.length > 0 ? (
                             valid.map((task, index) => (
-                                task ? <Task key={task.id} task={task} index={index} onDeleteTask={() => onDeleteTask(task.db_id)}/> : null
+                                task ? <Task key={task.id} task={task} index={index} onDeleteTask={onDeleteTask}/> : null
                             ))
                         ) : (
                             <div className="empty-task-message">

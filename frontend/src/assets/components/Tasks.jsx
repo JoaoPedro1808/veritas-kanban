@@ -19,7 +19,7 @@ export default function Task({ task, index, onDeleteTask }) {
           {task.fullTask && task.fullTask.desc && (
             <div className="task-description">{task.fullTask.desc}</div>
           )}
-          <button className="deletetask" onClick={onDeleteTask}>
+          <button className="deletetask" onClick={() => onDeleteTask(task.db_id, task.nome)}>
             Deletar a tarefa
           </button>
         </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { DragDropContext } from 'react-beautiful-dnd';
 import Column from './assets/components/Column';
 import CreateAlert from './assets/components/CreateAlert';
+import DeleteAlert from './assets/components/DeleteAlert';
 import './App.css';
 
 const statusMap = {
@@ -70,7 +71,10 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [mounted, setMounted] = useState(false);
-    const [showCreateAlert, setShowCreateAlert] = useState(false); // ⭐ STATE DO ALERTA
+    const [showCreateAlert, setShowCreateAlert] = useState(false);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    const [taskDelete, setTaskDelete] = useState(null);
+    const [taskNameDelete, setNameTaskDelete] = useState("");
     
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -132,30 +136,36 @@ function App() {
             }
             
             fetchTask();
-            setShowCreateAlert(false); // ⭐ FECHA O ALERTA APÓS CRIAR
+            setShowCreateAlert(false);
         } catch (error) {
             setError(error.message);
         }
     };
 
-    const handlerDelete = async (db_id) => {
-        if (!window.confirm("Certeza que deseja deletar a tarefa")) {
+    const handleDelete = (db_id, taskName = "") => {
+        setTaskDelete(db_id);
+        setNameTaskDelete(taskName);
+        setShowDeleteAlert(true);
+    }
+
+    const confirmDelete = async () => {
+        if (!taskDelete) {
             return;
         }
 
         try {
-            const taskDelete = `task-${db_id}`;
+            const taskToDelete = `task-${taskDelete}`;
 
             setBoard(prevBoard => {
                 const newTasks = {...prevBoard.tasks};
-                delete newTasks[taskDelete];
+                delete newTasks[taskToDelete];
 
                 const newColumns = {...prevBoard.columns};
 
                 Object.keys(newColumns).forEach(columnId => {
                     newColumns[columnId] = {
                         ...newColumns[columnId],
-                        taskIds: newColumns[columnId].taskIds.filter(id => id !== taskDelete)
+                        taskIds: newColumns[columnId].taskIds.filter(id => id !== taskToDelete)
                     };
                 });
                 return {
@@ -164,7 +174,7 @@ function App() {
                     columns: newColumns
                 };
             });
-            const response = await fetch(`${API}/tasks/${db_id}`, {
+            const response = await fetch(`${API}/tasks/${taskDelete}`, {
                 method: "DELETE",
             });
 
@@ -175,6 +185,10 @@ function App() {
         catch (error) {
             setError(error.message);
             fetchTask();
+        } finally {
+            setShowDeleteAlert(false);
+            setTaskDelete(null);
+            setNameTaskDelete("");
         }
     };
 
@@ -342,7 +356,7 @@ function App() {
                                     return <Column 
                                         key={column.id} 
                                         column={{...column, tasks}} 
-                                        onDeleteTask={handlerDelete}
+                                        onDeleteTask={handleDelete}
                                         onShowCreateAlert={() => setShowCreateAlert(true)}
                                     />;
                                 } catch (colError) {
@@ -367,6 +381,17 @@ function App() {
                     <CreateAlert 
                         onCreateTask={handleCreateTaskWithAlert}
                         onClose={() => setShowCreateAlert(false)}
+                    />
+                )}
+                {showDeleteAlert && (
+                    <DeleteAlert
+                        onConfirmDelete={confirmDelete}
+                        onClose={() => {
+                            setShowDeleteAlert(false);
+                            setTaskDelete(null);
+                            setNameTaskDelete("");
+                        }}
+                        taskName={taskNameDelete}
                     />
                 )}
             </div>
